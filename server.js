@@ -9,63 +9,73 @@ app.post('/generate-code', async (req, res) => {
 
     if (!prompt) return res.status(400).json({ error: "No prompt provided" });
 
-    // The system prompt that lets me build parts, UI elements, and scripts anywhere
-    const systemInstruction = `You are a legendary Roblox Studio Automation Expert. 
-    You have absolute control over generating objects, local scripts, server scripts, module scripts, and screen interfaces.
+    // Advanced schema forcing Gemini to mathematically compute scaling and handle complex asset types
+    const systemInstruction = `You are a Senior Roblox Studio Automation Engineer. You create full, scaled, game systems.
+    You must ALWAYS respond with ONLY raw JSON. Do not include markdown blocks like \`\`\`json. Do not include any trailing conversational text outside the JSON.
     
-    You must ALWAYS respond with ONLY raw JSON. Do not include markdown blocks like \`\`\`json.
+    When creating physical items, always mathematically compute realistic scales, offsets, and positions based on standard Roblox character metrics (e.g., standard character size is [4, 5, 1]).
+    If the user requests complex structures (like a house, obstacle course, or UI layout), break it down into multiple clear instructions in the array.
     
-    Analyze the user's prompt and their Selection Context:
-    1. If they ask for game mechanics, write clean Luau scripts and name them dynamically.
-    2. If they ask for interfaces (GUIs), generate ScreenGuis, Frames, TextButtons, and attach appropriate LocalScripts inside them.
-    3. If they ask for map elements, build Parts with specific dimensions, anchor tags, and materials.
+    Ensure you specify local scripts vs server scripts intelligently:
+    - Interactive buttons, UI animations, Camera changes -> LocalScript
+    - Saving data, spawning enemies, Leaderboards, health subtraction -> Script
     
-    Determine the perfect location for each item:
-    - Main Menu GUI / HUD Elements -> parent_service: "StarterGui"
-    - Local player code / movement elements -> parent_service: "StarterPlayer", parent_path: "StarterPlayerScripts"
-    - Global logic / game loops -> parent_service: "ServerScriptService"
-    - Workspace blocks -> parent_service: "Workspace"
-    
-    Your JSON response package must match this schema perfectly:
+    Format your response EXACTLY like this schema:
     {
-      "chat_reply": "A brief description explaining what assets were built and how they are configured.",
+      "chat_reply": "A professional explanation of the architectural changes, positions, and code logic deployed.",
       "instructions": [
         {
           "action": "create" or "edit",
-          "class_name": "Script" or "LocalScript" or "Frame" or "TextButton" or "Part" or "ScreenGui",
-          "name": "DescriptiveName",
-          "parent_service": "StarterGui" or "ServerScriptService" or "Workspace" or "StarterPlayer",
-          "parent_path": "",
+          "class_name": "Script" or "LocalScript" or "ModuleScript" or "Part" or "ScreenGui" or "Frame" or "TextButton" or "TextLabel" or "SpawnLocation",
+          "name": "PascalCaseName",
+          "parent_service": "Workspace" or "StarterGui" or "ServerScriptService" or "StarterPlayer" or "ReplicatedStorage",
+          "parent_path": "Optional/Folder/Path/Here",
           "properties": {
             "Anchored": true,
-            "Size": [10, 1, 10],
-            "BackgroundColor3": [255, 0, 0]
+            "CanCollide": true,
+            "Size": [10, 5, 10],
+            "Position": [0, 2.5, 0],
+            "BackgroundColor3": [35, 35, 40],
+            "TextColor3": [255, 255, 255],
+            "Text": "Label Text"
           },
-          "code": "-- (Only put code strings here if generating or editing a script object)"
+          "code": "-- Clean, bug-free, highly optimized Luau code here"
         }
       ]
     }`;
 
     try {
+        // Using an optimized model request wrapper to avoid latency overhead drops
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Connection': 'keep-alive'
+            },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: `${systemInstruction}\n\nContext:\n${context}\n\nRequest: ${prompt}` }] }]
+                contents: [{ parts: [{ text: `${systemInstruction}\n\nContext:\n${context}\n\nUser Request: ${prompt}` }] }]
             })
         });
+
+        if (!response.ok) throw new Error(`Google API returned status ${response.status}`);
 
         const data = await response.json();
         let resultText = data.candidates[0].content.parts[0].text;
         
         resultText = resultText.replace(/```json/gi, '').replace(/```/g, '').trim();
-        res.json(JSON.parse(resultText));
+        
+        // Validate JSON before sending back to Roblox
+        const jsonValid = JSON.parse(resultText);
+        res.json(jsonValid);
 
     } catch (error) {
-        console.error("AI Error:", error);
-        res.status(500).json({ chat_reply: "Structural parse error.", instructions: [] });
+        console.error("Advanced AI Failure Logic:", error);
+        res.status(500).json({ 
+            chat_reply: "⚠️ The processing pipeline timed out or ran into a structural code layout error. Please refine your generation parameters.", 
+            instructions: [] 
+        });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Ultimate Server active on ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Resilient Multi-Agent Backend Listening on ${PORT}`));
